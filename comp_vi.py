@@ -1,0 +1,237 @@
+"""
+计算vi的模块
+"""
+gradConv = 100
+IXprint = np.argsort(np.array(JS.quzhi_1(eHF,Vspc)))
+EIter = [0]*doTurns
+timeIter = [0]*doTurns
+abA1 = JS.Ab_All_1(Omega)
+abA2 = JS.Ab_All_2(Omega)
+time_start=time.time()
+Iter = doTurns
+for i in range(Iter):
+    print("iter = %d" % int(i+1))
+    print("gradConv = %d" % gradConv)
+    vi = JS.Setprecision(vi,0,Myprecision)
+    print(" Precision[vi] = ",Myprecision)
+    v2i,chiMp1a = JS.FoldList(vi,Omega,Nval,Myprecision)
+    va2mvb2 = JS.List_Sub(JS.quzhi_1(v2i,abA1),JS.quzhi_1(v2i,abA2),0)
+    print(" Precision[chiMp1a] = ",Myprecision)
+    chiNa = chiMp1a[Nval][:]
+    chiNm1a = chiMp1a[Nval-1][:]
+    chiNm2a = chiMp1a[Nval-2][:]
+    chiNm3a = chiMp1a[Nval-3][:]
+    v2chiNm3a = JS.List_CP(v2i,chiNm3a,1)
+    RN = list(range(1,Nval+2))
+    cv12 = JS.List_DM(chiMp1a,v2i,1)
+    chiMp1 = JS.List_CP(RN,cv12,1)
+    chiMp1.pop()
+    chiMp1.insert(0,1)
+    print(" Precision[chiMp1] = ",Myprecision)
+    chiN = chiMp1[int(Nval)] 
+    ni = JS.List_Sub(1,JS.List_D(chiNa,chiN,0),2)
+    N = JS.Total(ni,1)-Nval
+    print(" N error = ",N)
+    print(" ni = ",np.array(ni).astype(float))
+    if calAbg is False:
+        if iter == 3:
+            break
+        time_start1=time.time()
+        v2chiNm1a = JS.List_CP(v2i,chiNm1a,1)
+        chiNm1ab = JS.List_D(JS.List_Sub(JS.quzhi_1(v2chiNm1a,abA1),JS.quzhi_1(v2chiNm1a,abA2),0),va2mvb2,1)
+        Gc = JS.List_CP(GabList,chiNm1ab,1)
+        ab1 = JS.Ab(Omega,1)
+        mymat = JS.SparseArray(ab1,Gc,Omega,0)
+        mymatT = np.array(mymat).T
+        GvchiNm1 = JS.List_DM(JS.List_Add(mymat,mymatT,2),vi,2)
+        exp1gEa1 = JS.List_D(JS.List_CP(GvchiNm1,Nval**2,0),chiNa,1)
+        exp1viEst = JS.List_D(JS.Setprecision(JS.List_CP(JS.List_Sub(JS.quzhi_1(eHF,Vspc),FermiHF,1),-2,0),0,Myprecision),exp1gEa1,1)
+        exp2gEa1 = JS.List_D(GvchiNm1,chiNm1a,1)
+        exp2viEst = JS.List_D(exp2gEa1,JS.Setprecision(JS.List_CP(JS.List_Sub(JS.quzhi_1(eHF,Vspc),FermiHF,1),-2,0),0,Myprecision),1)
+        bign = JS.Position(ni,0.5,0)
+        newviEst = exp2viEst
+        newviEst = JS.Replace(newviEst,exp1viEst,bign,0)
+        time_end1 = time.time()
+        print(" Precision[newviEst] = ",Myprecision)
+        print(" time of estimate vi = ",time_end1-time_start1)
+        print(" approx vi = ",newviEst)
+        newviEst = JS.Replace(newviEst,Lastvi,LastV,1)
+        vi = JS.Setprecision(newviEst,0,Myprecision)
+        print(" setted vi = ",np.array(vi).astype(float))
+        timeIter[i] = time_end1-time_start
+        continue
+    print(" Begin chiNm3,2,1ab: ")
+    time_start2=time.time()
+    chiNm3ab = JS.List_D(JS.List_Sub(JS.quzhi_1(v2chiNm3a,abA1),JS.quzhi_1(v2chiNm3a,abA2),0),va2mvb2,1)
+    print(" Precision[chiNm3ab] = ",Myprecision)
+    time_end2 = time.time()
+    print(" time of chiNm3ab = ",time_end2-time_start2)
+    Nvc3 = JS.List_CP(JS.quzhi_1(JS.List_CP(v2i,(Nval-2)**2,0),abA1),chiNm3ab,1)
+    chiNm2ab = JS.List_Sub(JS.quzhi_1(chiNm2a,abA2),Nvc3,0)
+    Nvc2 = JS.List_CP(JS.quzhi_1(JS.List_CP(v2i,(Nval-1)**2,0),abA1),chiNm2ab,1)
+    chiNm1ab = JS.List_Sub(JS.quzhi_1(chiNm1a,abA2),Nvc2,0)
+    print(" Precision[chiNm2ab] = ",Myprecision)
+    print(" Precision[chiNm1ab] = ",Myprecision)
+    time_end3 = time.time()
+    print(" time of chiNm3,2,1ab = ",time_end3-time_start2)
+    v2Ge2 = JS.List_CP(JS.List_Add(JS.List_CP(ea,2,0),Gaa,0),v2i,1)
+    vvGabList = JS.List_CP(JS.List_CP(GabList,JS.quzhi_1(vi,abA1),1),JS.quzhi_1(vi,abA2),1)
+    v2v2LamabList = JS.List_CP(JS.List_CP(LamabList,JS.quzhi_1(v2i,abA1),1),JS.quzhi_1(v2i,abA2),1)
+    aveE0 = JS.List_DM(v2Ge2,chiNm1a,0)
+    aveE1 = 2*JS.List_DM(vvGabList,chiNm1ab,0)
+    aveE2 = (2*(Nval-1)**2)*JS.List_DM(v2v2LamabList,chiNm2ab,0)
+    aveE = ((aveE0+aveE1+aveE2)*Nval**2)/chiN 
+    print(" aveE = %.20f"%aveE)
+    print(" Precision[aveE]= ",120)
+    print(" Begin chiNm3,2,1abg: ")
+    time_start3 = time.time()
+    if flagUsePrecvi == True :
+        va2chiNm3ab = JS.List_CP(JS.quzhi_1(v2i,abA1),chiNm3ab,1)
+        chiNm3abg = JS.List_D(JS.List_Sub(JS.quzhi_1(va2chiNm3ab,agIX),JS.quzhi_1(va2chiNm3ab,bgIX),0),JS.quzhi_1(va2mvb2,abIX),1)
+        time_end4 = time.time()
+        print(" time of chiNm3abg = ",time_end4-time_start3)
+        Nv2i1 = JS.List_CP((Nval-1)**2,v2i,0)
+        Nv2i2 = JS.List_CP((Nval-2)**2,v2i,0)
+        chiNm2abg = JS.List_Sub(JS.quzhi_1(chiNm2ab,bgIX),JS.List_CP(JS.quzhi_1(Nv2i2,aInabg),chiNm3abg,1),0)
+        chiNm1abg = JS.List_Sub(JS.quzhi_1(chiNm1ab,bgIX),JS.List_CP(JS.quzhi_1(Nv2i1,aInabg),chiNm2abg,1),0)
+    else:
+        va2chiNm3ab = JS.List_CP(JS.quzhi_1(v2i,abA1),chiNm3ab,1)
+        va2chiNm2ab = JS.List_CP(JS.quzhi_1(v2i,abA1),chiNm2ab,1)
+        va2chiNm1ab = JS.List_CP(JS.quzhi_1(v2i,abA1),chiNm1ab,1)
+        va2mvb2 = np.array(va2mvb2).astype(float)
+        va2chiNm3ab = np.array(va2chiNm3ab).astype(float)
+        va2chiNm2ab = np.array(va2chiNm2ab).astype(float)
+        va2chiNm1ab = np.array(va2chiNm1ab).astype(float)
+        chiNm3abg = (np.array(JS.quzhi_1(va2chiNm3ab,agIX))-np.array(JS.quzhi_1(va2chiNm3ab,bgIX)))/np.array(JS.quzhi_1(va2mvb2,abIX))
+        chiNm2abg = (np.array(JS.quzhi_1(va2chiNm2ab,agIX))-np.array(JS.quzhi_1(va2chiNm2ab,bgIX)))/np.array(JS.quzhi_1(va2mvb2,abIX))
+        chiNm1abg = (np.array(JS.quzhi_1(va2chiNm1ab,agIX))-np.array(JS.quzhi_1(va2chiNm1ab,bgIX)))/np.array(JS.quzhi_1(va2mvb2,abIX))
+    print(" Precision[chiNm3abg] = ",17)
+    print(" Precision[chiNm2abg] = ",17)
+    print(" Precision[chiNm1abg] = ",17)
+    time_end5 = time.time()
+    print(" time of chiNm3,2,1abg = ",time_end5-time_start)
+    chiNm3abg = np.array(chiNm3abg).tolist()
+    chiNm3abg.append(0)
+    chiNm2abg = np.array(chiNm2abg).tolist()
+    chiNm2abg.append(0)
+    chiNm1abg = np.array(chiNm1abg).tolist()
+    chiNm1abg.append(0)
+    ab1 = JS.Ab(Omega,1)
+    mymat = JS.SparseArray(ab1,chiNm1ab,Omega,0)
+    mymatT = np.array(mymat).T
+    chiNm1abMat = JS.List_Add(mymat,mymatT,2)
+    mymat = JS.SparseArray(ab1,chiNm2ab,Omega,0)
+    mymatT = np.array(mymat).T
+    chiNm2abMat = JS.List_Add(mymat,mymatT,2)
+    Gc = JS.List_CP(GabList,chiNm1ab,1)
+    mymat = JS.SparseArray(ab1,Gc,Omega,0)
+    mymatT = np.array(mymat).T
+    GvchiNm1 = JS.List_DM(JS.List_Add(mymat,mymatT,2),vi,1)
+    Lc = JS.List_CP(LamabList,chiNm2ab,1)
+    mymat = JS.SparseArray(ab1,Lc,Omega,0)
+    mymatT = np.array(mymat).T
+    Lamv2chiNm2 = JS.List_DM(JS.List_Add(mymat,mymatT,2),v2i,1)
+    if int(len(abgIX)) == (Omega**2)*(Omega-1)/2:
+        None
+    else:
+        print(" Wrong Length ")
+        sys.exit()
+    print(" gEa expression1 Begins: ")
+    ENa0 = JS.List_DM(chiNm1abMat,v2Ge2,2)
+    Co1 = np.array(JS.quzhi_1(chiNm1abg,(np.array(abgIX)-1))).reshape((int(len(JS.quzhi_1(chiNm1abg,(np.array(abgIX)-1)))/Omega),Omega)) 
+    Co1 = JS.Setprecision(Co1,1,Myprecision)
+    ENa1 = JS.List_CP(JS.List_DM(Co1,vvGabList,2),2,0)
+    Co2 = np.array(JS.quzhi_1(chiNm2abg,(np.array(abgIX)-1))).reshape((int(len(JS.quzhi_1(chiNm1abg,(np.array(abgIX)-1)))/Omega),Omega))
+    Co2 = JS.Setprecision(Co2,1,Myprecision)
+    ENa2 = JS.List_CP(JS.List_DM(Co2,v2v2LamabList,2),2*((Nval-1)**2),0)
+    ENa01 = JS.List_Add(ENa0,ENa1,0)
+    ENa012 = JS.List_Add(ENa01,ENa2,0)
+    ENa = JS.List_CP(JS.List_D(ENa012,chiNa,1),Nval**2,0)
+    exp1gEa0 = JS.List_Sub(aveE,ENa,2)
+    exp1gEa1 = JS.List_CP(JS.List_D(GvchiNm1,chiNa,1),-Nval**2,0)
+    exp1vi = np.array(JS.List_D(exp1gEa0,exp1gEa1,1))*(-1)
+    exp1viEst = JS.List_CP(JS.List_D(JS.Setprecision(JS.List_Sub(JS.quzhi_1(eHF,Vspc),FermiHF,1),0,Myprecision),exp1gEa1,1),-2,0)
+    print(" Precision[exp1vi]= ",Myprecision)
+    eve01 = JS.List_Add(JS.List_D(exp1gEa0,vi,1),exp1gEa1,0)
+    exp1gEa = JS.List_CP(JS.List_CP(eve01,chiNa,1),(2/chiN),0) 
+    exp1graderror = JS.List_DM(exp1gEa,vi,0)
+    print(" gEa expression2 Begins: ")
+    eG = JS.List_Add(JS.List_CP(ea,2,0),Gaa,0)
+    NLc = JS.List_CP(JS.List_D(Lamv2chiNm2,chiNm1a,1),2*((Nval-1)**2),0)
+    da = JS.List_Add(eG,NLc,0)
+    ENm1a0 = JS.List_DM(chiNm2abMat,v2Ge2,2)
+    Co2 = np.array(JS.quzhi_1(chiNm2abg,(np.array(abgIX)-1))).reshape((int(len(JS.quzhi_1(chiNm1abg,(np.array(abgIX)-1)))/Omega),Omega))
+    Co2 = JS.Setprecision(Co2,1,Myprecision)
+    ENm1a1 = JS.List_CP(JS.List_DM(Co2,vvGabList,2),2,0)
+    Co3 = np.array(JS.quzhi_1(chiNm3abg,(np.array(abgIX)-1))).reshape((int(len(JS.quzhi_1(chiNm1abg,(np.array(abgIX)-1)))/Omega),Omega))
+    Co3 = JS.Setprecision(Co3,1,Myprecision)
+    ENm1a2 = JS.List_CP(JS.List_DM(Co3,v2v2LamabList,2),2*((Nval-2)**2),0)
+    ENm01 = JS.List_Add(ENm1a0,ENm1a1,0)
+    ENm012 = JS.List_Add(ENm01,ENm1a2,0)
+    ENm1a = JS.List_CP(JS.List_D(ENm012,chiNm1a,1),(Nval-1)**2,0)
+    exp2gEa0 = JS.List_Sub(JS.List_Add(da,ENm1a,0),aveE,1)
+    exp2gEa1 = JS.List_D(GvchiNm1,chiNm1a,1)
+    exp2vi = np.array(JS.List_D(exp2gEa1,exp2gEa0,1))*(-1)
+    eVF = JS.List_Sub(JS.List_CP(JS.quzhi_1(eHF,Vspc),2,0),FermiHF,1)
+    eVF = JS.Setprecision(eVF,0,Myprecision)
+    exp2viEst = np.array(JS.List_D(exp2gEa1,eVF,1))*(-1)
+    print(" Precision[exp2vi]= ",Myprecision)
+    e2ve01 = JS.List_Add(JS.List_CP(exp2gEa0,vi,1),exp2gEa1,0)
+    exp2gEa = JS.List_CP(JS.List_CP(e2ve01,chiNm1a,1),((2*(Nval**2))/chiN),0)
+    exp2graderror = JS.List_DM(exp2gEa,vi,0)
+    print(" ***Compare results: ***")
+    exp1gEa = np.array(exp1gEa).astype(float) 
+    exp2gEa = np.array(exp2gEa).astype(float)
+    print(" max grad_exp1 (0 after conv) = ",np.max(np.maximum(exp1gEa,-exp1gEa)))
+    print(" max grad_exp2 (0 after conv) = ",np.max(np.maximum(exp2gEa,-exp2gEa)))
+    print(" max (grad_exp1 - grad_exp2) (always 0) = ",np.max(np.maximum(exp1gEa - exp2gEa,-(exp1gEa - exp2gEa))))
+    print(" grad exp1 dot vi (always 0, because vi norm NOT affect E) = ",exp1graderror)
+    print(" grad exp2 dot vi (always 0, because vi norm NOT affect E) = ",exp2graderror)
+    e1vi = np.array(JS.List_Sub(exp1vi,vi,0)).astype(float)
+    e2vi = np.array(JS.List_Sub(exp2vi,vi,0)).astype(float)
+    print(" max(vi_exp1 - vi) (0 after conv) = ",np.max(np.maximum(e1vi,-e1vi)))
+    print(" max(vi_exp2 - vi) (0 after conv) = ",np.max(np.maximum(e2vi,-e2vi)))
+    ee12 = np.array(JS.List_Sub(exp1vi,exp2vi,0)).astype(float)
+    print(" max(vi_exp1 - vi_exp2) (0 after conv, solved by setting grad=0) = ",np.max(np.maximum(ee12,-ee12)))
+    bign = JS.Position(ni,0.5,0)
+    newvi = exp2vi 
+    newvi = JS.Replace(newvi,exp1vi,bign,0)
+    newviEst = exp2viEst
+    newviEst = JS.Replace(newviEst,exp1viEst,bign,0)
+    print(" scaling = newvi[[viset1]] = ",newvi[viset1])  
+    newviEst = JS.List_D(newviEst,newvi[viset1],0)        
+    newvi = JS.List_D(newvi,newvi[viset1],0)             
+    print(" Precision[newvi]= ",Myprecision)
+    newvi1 = JS.quzhi_1(newvi,IXprint)
+    newvi1 = np.array(newvi1).reshape((1,int(len(newvi1)))).T
+    newviEst1 = JS.quzhi_1(newviEst,IXprint)
+    newviEst1 = np.array(newviEst1).reshape((1,int(len(newviEst1)))).T
+    nEn = JS.List_Sub(JS.List_D(newviEst,newvi,1),1,1)
+    nEn = JS.quzhi_1(nEn,IXprint)
+    nEn = np.array(nEn).reshape((1,int(len(nEn)))).T
+    ni1 = JS.quzhi_1(ni,IXprint)
+    ni1 = np.array(ni1).reshape((1,int(len(ni1)))).T
+    vvn = np.concatenate([newvi1,newviEst1,nEn,ni1],axis = 1)
+    print(" vi,viEst,%,ni(Sorted)= ",vvn)
+    with open("vi_eachrun.txt","a") as file: 
+        file.write(str(newvi))
+    vi = JS.Setprecision(newvi,0,Myprecision)
+    gradConv = np.max(np.maximum(exp2gEa,-exp2gEa))
+    EIter[i] = aveE 
+    time_end = time.time()
+    timeIter[i] = time_end-time_start
+print(" Final gradConv = %.10f" %gradConv)
+
+"""
+(*Compute E_total = E_L + (E_V + E_LV). (E_V + E_LV) is aveE above.*)
+"""
+EL = 0
+if int(len(Lspc)) > 0:
+    eNL = JS.quzhi_1(eNil,Lspc)
+    eNL = JS.Setprecision(eNL,0,Myprecision)
+    LaL = JS.quzhi_2(Lamab,Lspc)
+    LaL = JS.Setprecision(LaL,1,Myprecision)
+    EL = 2*JS.Total(eNL,1)+JS.Total(LaL,0)
+Etotal = aveE + EL +Eshift
+print(" Etotal = ",Etotal)
+print(" Successful. ")
